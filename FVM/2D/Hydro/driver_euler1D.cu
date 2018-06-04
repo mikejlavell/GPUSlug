@@ -73,13 +73,14 @@ int main(){
  /*--------------------- Allocate -------------------------------------------*/
   //Grid Variables
   grid_alloc(gr_xCoord, gr_yCoord, gr_U, gr_V, //Host
-  d_gr_U, d_gr_V, d_gr_vL, d_gr_vR, d_gr_flux); //Device
+  d_gr_U, d_gr_V, d_gr_vLX, d_gr_vRX, d_gr_fluxX, d_gr_vLY, d_gr_vRY, d_gr_fluxY); //Device
 
  /*-------------------  Simulation Initialization  -----------------------------*/
   sim_init(gr_V, gr_U, gr_xCoord, gr_yCoord);
   //Write Initial Condition
   io_writeOutput(ioCounter, gr_xCoord, gr_yCoord, gr_V);
   ioCounter += 1;
+  clock_t tStart = clock();
 
 /* =========================== Simulate =========================================*/
  while (t < sim_tmax){
@@ -87,21 +88,23 @@ int main(){
 	 //dt = cfl_cuda(gr_V);
 	 dt = cfl_omp(gr_V);
 
-     if ( abs(t - sim_tmax) <= dt ){
-        dt = abs(t - sim_tmax);
+     if ( fabs(t - sim_tmax) <= dt ){
+        dt = fabs(t - sim_tmax);
       }
       
      //Transfer to GPU
      transfer_to_gpu(gr_V, gr_U, d_gr_V, d_gr_U); 
      
  /*------------------  Reconstruct and Update  --------------------------------*/
-    //Launches Kernel to reconstruct cell interface values in d_gr_vL and vR respectively
-    // And gets the Numerical Flux. 
-     soln_ReconEvolveAvg( dt, d_gr_V, d_gr_U, d_gr_vL,d_gr_vR, d_gr_flux, grid,
-      block); 
-    //  Updates the solution. 
-     soln_update(dt);  //Launches Kernel to update solution.
-     
+     // Launches reconstruction reconstruction and flux kernel in x and y 
+     soln_ReconEvolveAvg( dt, d_gr_V, d_gr_U, d_gr_vLX, d_gr_vRX, d_gr_fluxX,
+			  d_gr_vLY, d_gr_vRY, d_gr_fluxY, grid, block);
+ 
+     //  Update the solution. 
+     soln_update<<<grid,block>>>(d_gr_U, d_gr_V, d_gr_fluxX, d_gr_fluxY, dt); 
+     CudaCheckError();
+     cudaDeviceSynchronize();
+
      //Transfer to CPU
      transfer_to_cpu(d_gr_V, d_gr_U, gr_V, gr_U);   
 
@@ -111,19 +114,17 @@ int main(){
      bc_apply(gr_U);
      
      
-    //update your time and step count
+     //update your time and step count
      t += dt;
      nStep += 1;
 
-     if (dt <= 0.0){
-        zerodt = 0;
-	}
+     if (dt <= 0.0) break;
  }
 
 /*------------------- Write End-Time Solution ------------------------------*/
-  io_writeOutput(ioCounter, gr_xCoord,gr_yCoord, gr_V);
+  io_writeOutput(ioCounter, gr_xCoord, gr_yCoord, gr_V);
 
 /*--------------------- Free the Variables ------------------------------------*/
-  grid_finalize(gr_xCoord ,gr_U, gr_V, gr_vL, gr_vR, gr_flux, //Host
-  d_gr_U, d_gr_V, d_gr_vL, d_gr_vR, d_gr_flux); //Device
+  grid_finalize(gr_xCoord ,gr_U, gr_V, //Host
+  d_gr_U, d_gr_V, d_gr_vLX, d_gr_vRX, d_gr_fluxX, d_gr_vLY, d_gr_vRY, d_gr_fluxY); //Device
 }

@@ -66,9 +66,11 @@ inline void __cudaCheckError(const char *file, const int line)
 }
 
 /*--------------------- Allocate Variables ----------------------------------*/
-void grid_alloc( double *gr_xCoord, double *gr_yCoord,
- double4 *gr_U, double4 *gr_V, double4 *gr_vL, double4 *gr_vR, double4 *gr_flux, //Host
- double4 *d_gr_U, double4 *d_gr_V, double4 *d_gr_vL, double4 *d_gr_vR, double4 *d_gr_flux) //Device
+void grid_alloc( double *gr_xCoord, double *gr_yCoord, double4 *gr_U, double4 *gr_V, 
+ //double4 *gr_vLX, double4 *gr_vRX, double4 *gr_fluxX,
+ //double4 *gr_vLY, double4 *gr_vRY, double4 *gr_fluxY,  //Host
+ double4 *d_gr_U, double4 *d_gr_V, double4 *d_gr_vLX, double4 *d_gr_vRX, double4 *d_gr_fluxX,
+ double4 *d_gr_vLY, double4 *d_gr_vRY, double4 *d_gr_fluxY) //Device
 {
  size_t num_bytes = GRID_XSZE*GRID_YSZE*sizeof(double4*);   
  //Allocating Host Variables
@@ -76,12 +78,12 @@ void grid_alloc( double *gr_xCoord, double *gr_yCoord,
  gr_yCoord = (double*)malloc(GRID_YSZE*sizeof(double));
  gr_U = (double4*)malloc(num_bytes);   
  gr_V = (double4*)malloc(num_bytes);
- gr_vRX = (double4*)malloc(num_bytes);
- gr_vLX = (double4*)malloc(num_bytes);  
- gr_fluxX = (double4*)malloc(num_bytes);
- gr_vRY = (double4*)malloc(num_bytes);
- gr_vLY = (double4*)malloc(num_bytes);
- gr_fluxY = (double4*)malloc(num_bytes);
+ //gr_vRX = (double4*)malloc(num_bytes);
+ //gr_vLX = (double4*)malloc(num_bytes);  
+ //gr_fluxX = (double4*)malloc(num_bytes);
+ //gr_vRY = (double4*)malloc(num_bytes);
+ //gr_vLY = (double4*)malloc(num_bytes);
+ //gr_fluxY = (double4*)malloc(num_bytes);
 
  //Allocating Device Variables
  CudaSafeCall(cudaMalloc((void**)&d_gr_U, num_bytes));
@@ -92,6 +94,14 @@ void grid_alloc( double *gr_xCoord, double *gr_yCoord,
  CudaSafeCall(cudaMalloc((void**)&d_gr_vRY, num_bytes));
  CudaSafeCall(cudaMalloc((void**)&d_gr_vLY, num_bytes));
  CudaSafeCall(cudaMalloc((void**)&d_gr_fluxY, num_bytes));
+ cudaMemset(d_gr_U, 0.0, num_bytes); 
+ cudaMemset(d_gr_V, 0.0, num_bytes); 
+ cudaMemset(d_gr_vLX, 0.0, num_bytes); 
+ cudaMemset(d_gr_vRX, 0.0, num_bytes); 
+ cudaMemset(d_gr_fluxX, 0.0, num_bytes); 
+ cudaMemset(d_gr_vLY, 0.0, num_bytes); 
+ cudaMemset(d_gr_vRY, 0.0, num_bytes); 
+ cudaMemset(d_gr_fluxY, 0.0, num_bytes); 
 
 }
 
@@ -352,31 +362,23 @@ void bc_periodic(double3 *V)
 
 /*----------------- Finalize the grid ---------------------------------------*/
 
-void grid_finalize( double *gr_xCoord,
- double4 *gr_U, double4 *gr_V, double4 *gr_vLX, double4 *gr_vRX, double4 *gr_fluxX,
- double4 *gr_vLY, double4 *gr_vRY, double4 *gr_fluxY,                                      //Host
+void grid_finalize( double *gr_xCoord, double *gr_yCoord, double4 *gr_U, double4 *gr_V,  //Host
  double4 *d_gr_U, double4 *d_gr_V, double4 *d_gr_vLX, double4 *d_gr_vRX, double4 *d_gr_fluxX
- double4 *d_gr_vLY, double4 *d_gr_vRY, double4 *d_gr_fluxY)                                //Device
+ double4 *d_gr_vLY, double4 *d_gr_vRY, double4 *d_gr_fluxY)                              //Device
 {
  //Deallocating Host Variables
  free(gr_xCoord);
  free(gr_U);
  free(gr_V);
- free(gr_vRX);
- free(gr_vLX);
- free(gr_fluxX);
- free(gr_vRY)
- free(gr_vLY);
- free(gr_fluxY);
  
  //Deallocating Device Variables
  cudaFree(d_gr_U);
  cudaFree(d_gr_V);
- cudaFree(d_gr_vRX);
  cudaFree(d_gr_vLX);
+ cudaFree(d_gr_vRX);
  cudaFree(d_gr_fluxX);
- cudaFree(d_gr_vRY);
  cudaFree(d_gr_vLY);
+ cudaFree(d_gr_vRY);
  cudaFree(d_gr_fluxY);
 }
 

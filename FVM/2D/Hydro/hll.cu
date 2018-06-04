@@ -1,10 +1,3 @@
-/*CUDA Implementation of the Roe Riemann Solver 
-Written by Steven Reeves, University of California, Santa Cruz
-May 16th, 2017
-
-2D Edits by Michael Lavell, UCSC
-June 2018*/
-
 /*------------------ Library Dependencies --------------------------------*/
 #include <cuda.h>
 #include <cmath>
@@ -16,8 +9,8 @@ June 2018*/
 #include "eigensystem.cuh"
 #include "definition.h"
 
-/*---------------------- ROE SOLVER --------------------------------*/
-__device__ void roe(double4 *vL,double4 *vR,double4 *Flux,int dir)
+/*---------------------- HLL SOLVER --------------------------------*/
+__device__ void roe(double3 *vL,double3 *vR,double3 *Flux,int dir)
 {
   double4 FL={0.0},FR={0.0},uL={0.0},uR={0.0};
   double4 vAvg={0.0};
@@ -44,8 +37,8 @@ __device__ void roe(double4 *vL,double4 *vR,double4 *Flux,int dir)
   right_eigenvectors(vAvg,conservative,reig);
     
   //Fnding the Fluxes for the Aeraged State and Conservative Vars for Roe Flux.   
-  prim2flux(vL,FL,dir);
-  prim2flux(vR,FR,dir);
+  prim2flux(vL,FL);
+  prim2flux(vR,FR);
   prim2cons(vL,uL);
   prim2cons(vR,uR);
 

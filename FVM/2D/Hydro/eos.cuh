@@ -6,7 +6,7 @@
 #include "definition.h"
 
 
-__device__ eos_cell(const double U,const double eint, double &pres)
+__host__ __device__ void eos_cell(const double dens, const double eint, double &pres)
 {
-       pres = max((sim_gamma-1.)*dens*eint,sim_smallPres);
+       pres = fmax((sim_gamma-1.)*dens*eint,1e-6);
 }
