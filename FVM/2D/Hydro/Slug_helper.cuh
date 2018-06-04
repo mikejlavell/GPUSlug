@@ -7,18 +7,6 @@
 
 #include "definition.h"
 
-extern int GRID_SIZE;
-extern int gr_dx;
-extern int gr_dy;
-extern int gr_ibeg;
-extern int gr_iend;
-extern int gr_jbeg;
-extern int gr_jend;
-extern int gr_imax;
-extern int gr_jmax;
-extern int gr_ngc;
-extern int sim_bcType;
-extern string sim_riemann;
 
 /*----------------------CUDA Error stuff -------------------------------- */ 
 #define CUDA_ERROR_CHECK

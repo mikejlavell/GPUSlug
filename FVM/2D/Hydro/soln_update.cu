@@ -8,6 +8,7 @@
 
 /*-----------------------Function Dependencies!----------------------*/
 #include "primconsflux.cuh"
+#include "definition.h"
 
 __global__ void soln_update(double4 *U, double4 *V, const double4 *Flux,
 			    const double4 *Fluy, const double dt)

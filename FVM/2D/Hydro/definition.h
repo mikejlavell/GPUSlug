@@ -23,8 +23,8 @@
  double sim_cdf = 0.8;
 
 //CUDA Parameters
- double BLOCK_DIMX
- double BLOCK_DIMY
+ double BLOCK_DIMX;
+ double BLOCK_DIMY;
 
 // slope limiters
  int MINMOD = 1;
@@ -40,7 +40,7 @@
 
 // conservative vars
  int MOMX_VAR =2;
- int MOMY_VAR =3
+ int MOMY_VAR =3;
  int ENER_VAR =4;
 
 // waves

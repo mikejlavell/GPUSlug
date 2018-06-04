@@ -43,7 +43,7 @@ __host__ __device__  void cons2prim(const double4 U,double4 &V)
         eint = eint/U.x;
 
         // get pressure by calling eos
-        eos_cell(U.x,eint,pres);
+        eos_cell(U.x,eint,pres,sim_gamma);
         V.w = pres;
     }    
 

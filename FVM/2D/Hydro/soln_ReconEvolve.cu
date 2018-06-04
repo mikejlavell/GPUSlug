@@ -8,7 +8,9 @@
 /*------------------------------ Program Dependencies ----------------------------*/
 #include "definition.h"
 #include "slope_limiter.cuh"
- 
+#include "eigensystem.cuh" 
+
+
 __device__ double dot_product(double4 u, double4 v){
     double ans = 0.0;
     ans = u.x*v.x + u.y*v.y + u.z*v.z u.w*v.w;

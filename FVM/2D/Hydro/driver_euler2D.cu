@@ -22,10 +22,9 @@ May, 2018
 /*-----------------------Header Dependencies!----------------------*/
 #include "Slug_helper.cuh"
 #include "cfl.cuh"
-#include "soln_ReconEvolve.cuh"
 #include "io_helper.h"
+#include "definition.h"
 
-extern double sim_tmax;
 /*---------------Main Program, calls the routines!------*/
 int main(){
 	//Useful Debugging Features

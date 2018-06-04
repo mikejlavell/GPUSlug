@@ -21,7 +21,6 @@ remarks
 
 /*------------- Code Dependencies ---------------------*/
 #include "definition.h"
-#include "primconsflux.cuh"
 
 /*------------------ CFL  Time Step- ------------------*/
  double cfl_cuda(double4 *gr_V)
