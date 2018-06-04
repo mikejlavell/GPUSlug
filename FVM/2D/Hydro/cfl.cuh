@@ -132,21 +132,25 @@ __global__ void dt_reduce(double *dt_reduc, double dt){
 
 
 /*----------------- CFL Condition ---------------------*/
-double cfl_omp(double3 *gr_V)
+double cfl_omp(double4 *gr_V)
 {   
-    double cs, lambda, maxSpeed, dt; 
-    maxSpeed = -1e30;
+    double cs, lambda, minDt, dt;
+    minDt = 1.e20; 
+    
 #pragma omp parallel for reduction(max:maxSpeed) num_threads(ncores) private(cs, lambda)
  for(int i = gr_ibeg, gr_iend)
     {
-            
-         cs = sqrtf(sim_gamma*gr_V.z[i]/gr_V.x[i]);
-         lambda=(abs(gr_V.y[i]) + cs);
-         maxSpeed=max(maxSpeed,lambda);
+	 for(int j = gr_jbeg, gr_jend)
+	 {            
+         	cs = sqrtf(sim_gamma*gr_V.w[i][j]/gr_V.x[i][j]);
+         	lambdax=abs(gr_V.y[i][j]) + cs;
+		lambday=abs(gr_V.z[i][j]) + cs;
+         	minDt = min(minDt, gr_dx/lambdax, gr_dy/lambday):
+	 }
      }
 
   // cfl
-  dt = 0.8*gr_dx/maxSpeed;
+  dt = cfl*minDt;
   return dt;
 }
 

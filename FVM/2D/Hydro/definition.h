@@ -16,10 +16,11 @@
  int gr_jend = M + gr_ibeg - 1;
  int gr_imax = GRID_XSZE - 1;	//Because C/C++
  int gr_jmax = GRID_YSZE - 1;
- int sim_type = 1; // 2 3 4      1 = Sod, 2 = Rarefaction, 3 = Blast2, 4 = ShuOsher
+ int sim_type = 1; // 2 3 4      1 = Blast
  double sim_gamma = 1.4;
  std::string sim_riemann = "roe"; // "hll"; "hllc";
  double sim_tmax = 0.20;
+ double sim_cdf = 0.8;
 
 //CUDA Parameters
  double BLOCK_DIMX
@@ -44,9 +45,10 @@
 
 // waves
  int SHOCKLEFT =1;
- int CTENTROPY =2;
- int SHOCKRGHT =3;
- int NUMB_WAVE =3;
+ int SLOWWLEFT =2;
+ int CTENTROPY =3;
+ int SHOCKRGHT =4;
+ int NUMB_WAVE =4;
 
 // BC
  int OUTFLOW  =1;

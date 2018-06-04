@@ -30,8 +30,8 @@
    
     for(int i = gr_ibeg; i<gr_iend; i++){
 	for(int j = gr_jbeg; j< gr_jend; j++){
-	    myfile << xx[i] <<'\t'<< yy[j] <<'\t'<< U.w[i][j] >>'\t'<< U.x[i][j] \\
-		   <<'\t'<< U.y[i][j] <<'\t'<< U.z[i][j] << '\t';
+	    myfile << xx[i] <<'\t'<< yy[j] <<'\t'<< U.x[i][j] >>'\t'<< U.y[i][j] \\
+		   <<'\t'<< U.z[i][j] <<'\t'<< U.w[i][j] << '\t';
 
 	}
     }

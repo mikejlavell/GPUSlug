@@ -25,7 +25,7 @@ __host__ __device__  void prim2cons(const double4 V, double4 &U)
     eknx = 0.5*V.x*V.y*V.y;
     ekny = 0.5*V.x*V.z*V.z;
     
-    eint = V.p/(sim_gamma-1.0);
+    eint = V.w/(sim_gamma-1.0);
     U.w = eknx + ekny + eint;
 }
 
@@ -54,7 +54,7 @@ __host__ __device__  void prim2flux(const double4 V,double4 &Flux)
     double eknx,ekny,eint,ener;
     Flux.x = V.x*V.y;
     Flux.y = V.x*V.z;
-    Flux.z = Flux.x*V.y + Flux.y*V.z + V.w;
+    Flux.z = Flux.x*V.y + Flux.x*V.z + V.w;
 
     eknx = 0.5*V.y*V.y*V.x;
     ekny = 0.5*V.z*V.z*V.x;

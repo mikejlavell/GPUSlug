@@ -76,16 +76,23 @@ void grid_alloc( double *gr_xCoord, double *gr_yCoord,
  gr_yCoord = (double*)malloc(GRID_YSZE*sizeof(double));
  gr_U = (double4*)malloc(num_bytes);   
  gr_V = (double4*)malloc(num_bytes);
- gr_vR = (double4*)malloc(num_bytes);
- gr_vL = (double4*)malloc(num_bytes);  
- gr_flux = (double4*)malloc(num_bytes);
- 
+ gr_vRX = (double4*)malloc(num_bytes);
+ gr_vLX = (double4*)malloc(num_bytes);  
+ gr_fluxX = (double4*)malloc(num_bytes);
+ gr_vRY = (double4*)malloc(num_bytes);
+ gr_vLY = (double4*)malloc(num_bytes);
+ gr_fluxY = (double4*)malloc(num_bytes);
+
  //Allocating Device Variables
  CudaSafeCall(cudaMalloc((void**)&d_gr_U, num_bytes));
  CudaSafeCall(cudaMalloc((void**)&d_gr_V, num_bytes));
- CudaSafeCall(cudaMalloc((void**)&d_gr_vR, num_bytes));
- CudaSafeCall(cudaMalloc((void**)&d_gr_vL, num_bytes));
- CudaSafeCall(cudaMalloc((void**)&d_gr_flux, num_bytes));
+ CudaSafeCall(cudaMalloc((void**)&d_gr_vRX, num_bytes));
+ CudaSafeCall(cudaMalloc((void**)&d_gr_vLX, num_bytes));
+ CudaSafeCall(cudaMalloc((void**)&d_gr_fluxX, num_bytes));
+ CudaSafeCall(cudaMalloc((void**)&d_gr_vRY, num_bytes));
+ CudaSafeCall(cudaMalloc((void**)&d_gr_vLY, num_bytes));
+ CudaSafeCall(cudaMalloc((void**)&d_gr_fluxY, num_bytes));
+
 }
 
 
@@ -276,14 +283,35 @@ void bc_outflow(double4 *V)
 #pragma omp parallel for num_threads(ncores) 
     for(int i = 0; i < gr_ngc ; i++)
     {
-       // on the left GC
-       V.x[i] = V.x[i+1];
-       V.y[i] = V.y[i+1];
-       V.z[i] = V.z[i+1];       
-       // on the right GC
-       V.x[gr_imax+1-i] = V.x[gr_imax-i];
-       V.y[gr_imax+1-i] = V.y[gr_imax-i];
-       V.z[gr_imax+1-i] = V.z[gr_imax-i];              
+	for(int j = 0; j < gr_jmax; j++)
+	{
+      		// on the left bounday
+      		V.x[i][j] = V.x[i+1][j];
+      		V.y[i][j] = V.y[i+1][j];
+      		V.z[i][j] = V.z[i+1][j]; 
+      		V.w[i][j] = V.w[i+1][j];
+       
+		// on the right GC
+		V.x[gr_imax+1-i][j] = V.x[gr_imax-i][j];
+       		V.y[gr_imax+1-i][j] = V.y[gr_imax-i][j];
+       		V.z[gr_imax+1-i][j] = V.z[gr_imax-i][j];              
+		V.w[gr_imax+1-i][j] = V.w[gr_imax-1][j];
+	}
+    }
+    for(int j = 0; j < gr_ngc; j++){
+	for(int i = 0; i < gr_imax; i++){
+		// on top bounday
+      		V.x[i][j] = V.x[i][j+1];
+      		V.y[i][j] = V.y[i][j+1];
+      		V.z[i][j] = V.z[i][j+1];
+      		V.w[i][j] = V.w[i][j+1];
+		
+		// on bottom bounday
+		V.x[i][gr_jmax+1-1] = V.x[i][gr_jmax-i];
+		V.y[i][gr_jmax+1-1] = V.y[i][gr_jmax-i];
+		V.z[i][gr_jmax+1-1] = V.z[i][gr_jmax-i];
+		V.w[i][gr_jmax+1-1] = V.w[i][gr_jmax-i];		
+	}
     }
 }
 
@@ -325,23 +353,31 @@ void bc_periodic(double3 *V)
 /*----------------- Finalize the grid ---------------------------------------*/
 
 void grid_finalize( double *gr_xCoord,
- double4 *gr_U, double4 *gr_V, double4 *gr_vL, double4 *gr_vR, double4 *gr_flux, //Host
- double4 *d_gr_U, double4 *d_gr_V, double4 *d_gr_vL, double4 *d_gr_vR, double4 *d_gr_flux) //Device
+ double4 *gr_U, double4 *gr_V, double4 *gr_vLX, double4 *gr_vRX, double4 *gr_fluxX,
+ double4 *gr_vLY, double4 *gr_vRY, double4 *gr_fluxY,                                      //Host
+ double4 *d_gr_U, double4 *d_gr_V, double4 *d_gr_vLX, double4 *d_gr_vRX, double4 *d_gr_fluxX
+ double4 *d_gr_vLY, double4 *d_gr_vRY, double4 *d_gr_fluxY)                                //Device
 {
  //Deallocating Host Variables
  free(gr_xCoord);
  free(gr_U);
  free(gr_V);
- free(gr_vR);
- free(gr_vL);
- free(gr_flux);
+ free(gr_vRX);
+ free(gr_vLX);
+ free(gr_fluxX);
+ free(gr_vRY)
+ free(gr_vLY);
+ free(gr_fluxY);
  
  //Deallocating Device Variables
  cudaFree(d_gr_U);
  cudaFree(d_gr_V);
- cudaFree(d_gr_vR);
- cudaFree(d_gr_vL);
- cudaFree(d_gr_flux);
+ cudaFree(d_gr_vRX);
+ cudaFree(d_gr_vLX);
+ cudaFree(d_gr_fluxX);
+ cudaFree(d_gr_vRY);
+ cudaFree(d_gr_vLY);
+ cudaFree(d_gr_fluxY);
 }
 
 
@@ -363,5 +399,4 @@ void transfer_to_gpu(double4 *V, double4 *U, double4 *d_V, double4 *d_U) //cpu t
    CudaCheckError();
    cudaDeviceSynchronize();
 }
-
 

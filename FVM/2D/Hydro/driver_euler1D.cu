@@ -61,9 +61,14 @@ int main(){
   double4* d_gr_U; // conservative vars
   double4* d_gr_V; // primitive vars
 
-  double4* d_gr_vL;   // left Riemann states
-  double4* d_gr_vR;   // right Riemann states
-  double4* d_gr_flux; // fluxes
+  double4* d_gr_vLX;   // left Riemann states in x-direction
+  double4* d_gr_vRX;   // right Riemann states in x-direction
+  double4* d_gr_fluxX; // fluxes in x-direction
+
+  double4* d_gr_vLY;   // left Riemann states in y-direction
+  double4* d_gr_vRY;   // right Riemann states in y-direction
+  double4* d_gr_fluxY; // fluxes in y-direction
+
 
  /*--------------------- Allocate -------------------------------------------*/
   //Grid Variables
@@ -79,8 +84,9 @@ int main(){
 /* =========================== Simulate =========================================*/
  while (t < sim_tmax){
 	 //calculate time step
-	 dt = cfl_cuda(gr_V);
-	 //dt = cfl_omp(gr_V);
+	 //dt = cfl_cuda(gr_V);
+	 dt = cfl_omp(gr_V);
+
      if ( abs(t - sim_tmax) <= dt ){
         dt = abs(t - sim_tmax);
       }
