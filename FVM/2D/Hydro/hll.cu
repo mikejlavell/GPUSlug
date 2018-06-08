@@ -9,7 +9,7 @@
 #include "eigensystem.cuh"
 #include "definition.h"
 
-/*---------------------- HLL SOLVER --------------------------------*/
+/*---------------------- Roe SOLVER --------------------------------*/
 __device__ void roe(double3 *vL,double3 *vR,double3 *Flux,int dir)
 {
   double4 FL={0.0},FR={0.0},uL={0.0},uR={0.0};

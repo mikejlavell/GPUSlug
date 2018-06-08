@@ -4,9 +4,9 @@
 #include <stdio.h>
 #include "definition.h"
 
-#ifndef defeos
-#define defeos
 
-__host__ __device__ void eos_cell(const double dens, const double eint, double &pres);
+__host__ __device__ void eos_cell(const double dens, const double eint, double &pres)
+{
+       pres = fmax((sim_gamma-1.)*dens*eint,1e-6);
+}
 
-#endif

@@ -15,26 +15,28 @@ __global__ void soln_update(double4 *U, double4 *V, const double4 *Flux,
 {
     int tidx = threadIdx.x + blockIdx.x*blockDim.x + gr_ngc;
     int tidy = threadIdx.y + blockIdx.y*blockDim.y + gr_ngc;
+    int stid = tidy*M + tidx;
+    int stidx1 = stid+1;
+    int stidy1 = (tidy+1)*M + tidx;
+
     double dtx = dt/gr_dx;
     double dty = dt/gr_dy;
     double4 temp = {0.0, 0.0, 0.0, 0.0};
-    //if(tidx < GRID_XSZE - gr_ngc) {
-    //	if (tidy < GRID_YSZE - gr_ngc) {
-
-    temp.x = U[tidx][tidy].x - dtx*(Flux[tidx+1][tidy].x - Flux[tidx][tidy].x) 
-   		             - dty*(Fluy[tidx][tidy+1].x - Fluy[tidx][tidy].x);
-    temp.y = U[tidx][tidy].y - dtx*(Flux[tidx+1][tidy].y - Flux[tidx][tidy].y)
- 		             - dty*(Fluy[tidx][tidy+1].y - Fluy[tidx][tidy].y);
-    temp.z = U[tidx][tidy].z - dtx*(Flux[tidx+1][tidy].z - Flux[tidx][tidy].z)
-			     - dty*(Fluy[tidx][tidy+1].z - Fluy[tidx][tidy].z);
-    temp.w = U[tidx][tidy].w - dtx*(Flux[tidx+1][tidy].w - Flux[tidx][tidy].w)
-			     - dty*(Fluy[tidx][tidy+1].w - Fluy[tidx][tidy].w);
-    syncthreads();
-
-    U[tidx][tidy] = temp;
-    __syncthreads();
+   
+    if( tidx>0 && tidx<(N-1) && tidy>0 && tidy<(M-1))
+    {
+    	temp.x = U[stid].x - dtx*(Flux[stidx1].x - Flux[stid].x) 
+   			   - dty*(Fluy[stidy1].x - Fluy[stid].x);
+   	temp.y = U[stid].y - dtx*(Flux[stidx1].y - Flux[stid].y)
+ 			   - dty*(Fluy[stidy1].y - Fluy[stid].y);
+    	temp.z = U[stid].z - dtx*(Flux[stidx1].z - Flux[stid].z)
+			   - dty*(Fluy[stidy1].z - Fluy[stid].z);
+    	temp.w = U[stid].w - dtx*(Flux[stidx1].w - Flux[stid].w)
+			   - dty*(Fluy[stidy1].w - Fluy[stid].w);
+    }
+    U[stid] = temp;
     
-    cons2prim(U[tidx][tidy], V[tidx][tidy]);
+    cons2prim(U[stid], V[stid]);
 	//}
     //}
 }

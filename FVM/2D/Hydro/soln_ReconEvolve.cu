@@ -9,11 +9,13 @@
 #include "definition.h"
 #include "slope_limiter.cuh"
 #include "eigensystem.cuh" 
+#include "Slug_helper.cuh"
 
+extern __device__ void roe(const double4 vL, const double4 vR, double4 &Flux, int dir);
 
 __device__ double dot_product(double4 u, double4 v){
     double ans = 0.0;
-    ans = u.x*v.x + u.y*v.y + u.z*v.z u.w*v.w;
+    ans = u.x*v.x + u.y*v.y + u.z*v.z + u.w*v.w;
     return ans;
  }
  
@@ -21,19 +23,26 @@ __device__ double dot_product(double4 u, double4 v){
  __global__ void soln_reconstruct_PLM(const double dt, double4 *V, double4 *vl,
   double4 *vr, int dir)
  {
+    int a, b;
+    double gr_dX;
     if( dir == 0 ){
 	//int GRID_SIZE = GRID_XSZE;
-	double gr_dX = gr_dx;
-	int a = 1; int b = 0;
+	gr_dX = gr_dx;
+	a = 1; b = 0;
 	}
     else if( dir == 1){
 	//int GRID_SIZE = GRID_YSZE;
-	double gr_dX = gr_dy;
-	int a = 0; int b = 1;
+	gr_dX = gr_dy;
+	a = 0; b = 1;
 	}
 
     int tidx = threadIdx.x + blockIdx.x*blockDim.x + gr_ngc;
     int tidy = threadIdx.y + blockIdx.y*blockDim.y + gr_ngc;
+    int stid = tidy*M + tidx;
+    int stidm = (tidy-b)*M + tidx - a;
+    int stidp = (tidy+b)*M + tidx + a;
+
+
     if(tidx < GRID_XSZE - gr_ngc){
     if(tidy < GRID_YSZE - gr_ngc){
     double lambdaDtDx;
@@ -44,21 +53,21 @@ __device__ double dot_product(double4 u, double4 v){
     double pL = 0.0, pR = 0.0, delW[NUMB_WAVE] = {0.0};
 
     // Calculate eigensystem
-    eigenvalues(V[tidx][tidy],lambda); //Get Eigenvalues for reconstruction
-    left_eigenvectors (V[tidx][tidy],0,leig);
-    right_eigenvectors(V[tidx][tidy],0,reig);
+    eigenvalues(V[stid],lambda,dir); //Get Eigenvalues for reconstruction
+    left_eigenvectors (V[stid],0,leig,dir);
+    right_eigenvectors(V[stid],0,reig,dir);
     __syncthreads();
 
         for(int kWaveNum = 0; kWaveNum < NUMB_WAVE; kWaveNum ++)
         {
-           delL.x = V[tidx][tidy].x-V[tidx-a][tidy-b].x;
-           delL.y = V[tidx][tidy].y-V[tidx-a][tidy-b].y;
-           delL.z = V[tidx][tidy].z-V[tidx-a][tidy-b].z;
-           delL.w = V[tidx][tidy].w-V[tidx-a][tidy-b].w;
-           delR.x = V[tidx+a][tidy+b].x-V[tidx][tidy].x;
-           delR.y = V[tidx+a][tidy+b].y-V[tidx][tidy].y;
-           delR.z = V[tidx+a][tidy+b].z-V[tidx][tidy].z;
-           delR.w = V[tidx+a][tidy+b].w-V[tidx][tidy].w;
+           delL.x = V[stid].x -V[stidm].x;
+           delL.y = V[stid].y -V[stidm].y;
+           delL.z = V[stid].z -V[stidm].z;
+           delL.w = V[stid].w -V[stidm].w;
+           delR.x = V[stidp].x-V[stid].x;
+           delR.y = V[stidp].y-V[stid].y;
+           delR.z = V[stidp].z-V[stid].z;
+           delR.w = V[stidp].w-V[stid].w;
 	   __syncthreads();
 
            // project onto characteristic vars
@@ -67,14 +76,15 @@ __device__ double dot_product(double4 u, double4 v){
 
            // Use a TVD Slope limiter
            if (sim_limiter == 1){
-                del[kWaveNum] = minmod(pL, pR):
+                delW[kWaveNum] = minmod(pL, pR);
               }
+	   /*
            else if (sim_limiter == 2){
-                del[kWaveNum] = vanLeer(pL, pR);
+                delW[kWaveNum] = vanLeer(pL, pR);
               }
            else if (sim_limiter == 3){
-                del[kWaveNum = mc(pL, pR);
-              }
+                delW[kWaveNum] = mc(pL, pR);
+              }*/
 	   __syncthreads();
         }   
         
@@ -86,7 +96,7 @@ __device__ double dot_product(double4 u, double4 v){
         if (sim_riemann == "roe"){
 	   for(int kWaveNum = 0; kWaveNum<NUMB_WAVE; kWaveNum++){
 	      lambdaDtDx = lambda[kWaveNum]*dt/gr_dX;
-              if (lambda(kWaveNum) > 0){
+              if (lambda[kWaveNum] > 0){
               //Right Sum
                  sigR.x += 0.5*(1.0 - lambdaDtDx)*reig[kWaveNum].x*delW[kWaveNum];
         	 sigR.y += 0.5*(1.0 - lambdaDtDx)*reig[kWaveNum].y*delW[kWaveNum];
@@ -94,7 +104,7 @@ __device__ double dot_product(double4 u, double4 v){
 		 sigR.w += 0.5*(1.0 - lambdaDtDx)*reig[kWaveNum].w*delW[kWaveNum];
 		 __syncthreads();        
 	      }
-              else if (lambda(kWaveNum) < 0){
+              else if (lambda[kWaveNum] < 0){
               //Left Sum
                  sigL.x += 0.5*(-1.0 - lambdaDtDx)*reig[kWaveNum].x*delW[kWaveNum];
                  sigL.y += 0.5*(-1.0 - lambdaDtDx)*reig[kWaveNum].y*delW[kWaveNum];
@@ -124,23 +134,25 @@ __device__ double dot_product(double4 u, double4 v){
 	 }
 
          // Now PLM reconstruction for dens, velx, vely, and pres
-         vl[tidx][tidy].x = V[tidx][tidy].x + sigL.x;
-         vl[tidx][tidy].y = V[tidx][tidy].y + sigL.y;
-         vl[tidx][tidy].z = V[tidx][tidy].z + sigL.z;
-         vl[tidx][tidy].w = V[tidx][tidy].w + sigL.w;
-         vr[tidx][tidy].x = V[tidx][tidy].x + sigR.x;
-         vr[tidx][tidy].y = V[tidx][tidy].y + sigR.y;
-         vr[tidx][tidy].z = V[tidx][tidy].z + sigR.z;   
-         vr[tidx][tidy].w = V[tidx][tidy].w + sigR.w;   
+         vl[stid].x = V[stid].x + sigL.x;
+         vl[stid].y = V[stid].y + sigL.y;
+         vl[stid].z = V[stid].z + sigL.z;
+         vl[stid].w = V[stid].w + sigL.w;
+         vr[stid].x = V[stid].x + sigR.x;
+         vr[stid].y = V[stid].y + sigR.y;
+         vr[stid].z = V[stid].z + sigR.z;   
+         vr[stid].w = V[stid].w + sigR.w;   
 	 }
      }
- }}
+ }
 
 /*---------------------------------- Get Flux Kernel ---------------------------*/ 
 __global__ void soln_getFlux(double dt, double4 *vl, double4 *vr, double4 *flux, int dir)
 {
-	if( dir == 0) a = 1; b = 0;
-	else if( dir == 1) a = 0; b = 1;
+	int a, b;
+
+	if( dir == 0) a = 1, b = 0;
+	else if( dir == 1) a = 0, b = 1;
 
 	int tidx = threadIdx.x + blockIdx.x*blockDim.x + gr_ngc;
 	int tidy = threadIdx.y + blockIdx.y*blockDim.y + gr_ngc;
@@ -160,7 +172,7 @@ __global__ void soln_getFlux(double dt, double4 *vl, double4 *vr, double4 *flux,
 		if(sim_riemann == "roe")
 		{
 			//Call the Roe Riemann Solver
-			roe(vr[tidx-a][tidy-b],vl[tidx][tidy],flux[tidx][tidy]); 
+			roe(vr[(tidy-b)*M + tidx -a],vl[tidy*M + tidx],flux[tidy*M + tidx],dir); 
 		}
 	}}
 }
@@ -168,25 +180,20 @@ __global__ void soln_getFlux(double dt, double4 *vl, double4 *vr, double4 *flux,
 /*-------------------  Solution Reconstruct Evolve and Average -----------------*/
 void soln_ReconEvolveAvg(double dt, double4 *d_gr_V, double4 *d_gr_U,
  double4 * d_gr_vlx, double4 *d_gr_vrx, double4 *d_gr_fluxx,
- double4 * d_gr_vly, double4 *d_gr_vry, double4 *d_gr_fluxy, dim3 grid, dim3 block) 
+ double4 * d_gr_vly, double4 *d_gr_vry, double4 *d_gr_fluxy, const dim3 grid, const dim3 block) 
  {
+	
     // Reconstruct in x-direction
-    soln_reconstruct_PLM<<<grid,block>>>(dt, d_gr_V, d_gr_vlx, d_gr_vrx, 0);
-    CudaCheckError();
-    cudaDeviceSynchronize();
-
+    soln_reconstruct_PLM<<<mygrid,myblock,0>>>(dt, d_gr_V, d_gr_vlx, d_gr_vrx, 0);
+	CudaCheckError(); 
     // Get flux in x-direction
-    soln_getFlux<<<grid,block>>>(dt, d_gr_vly, d_gr_vry, d_gr_fluxx, 0)
-    CudaCheckError();
-    cudaDeviceSynchronize();
-
+    soln_getFlux<<<grid,block>>>(dt, d_gr_vly, d_gr_vry, d_gr_fluxx, 0);
+	CudaCheckError();
     // Reconstruct in y-direction
     soln_reconstruct_PLM<<<grid,block>>>(dt, d_gr_V, d_gr_vly, d_gr_vry, 1);
-    CudaCheckError();
-    cudaDeviceSynchronize();
-
+	CudaCheckError();
     // Get flux in y-direction
     soln_getFlux<<<grid,block>>>(dt, d_gr_vly, d_gr_vry, d_gr_fluxy, 1);
-    CudaCheckError();
-    cudaDeviceSynchronize();
- }
+	CudaCheckError();
+} 
+
