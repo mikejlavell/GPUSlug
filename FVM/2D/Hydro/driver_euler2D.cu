@@ -79,11 +79,13 @@ int main(){
   double4* d_gr_vRY;   // right Riemann states in y-direction
   double4* d_gr_fluxY; // fluxes in y-direction
 
+  double *d_maxS_reduc, *h_maxS_reduc;
 
  /*--------------------- Allocate -------------------------------------------*/
   //Grid Variables
-  grid_alloc(gr_xCoord, gr_yCoord, gr_U, gr_V, //Host
-  d_gr_U, d_gr_V, d_gr_vLX, d_gr_vRX, d_gr_fluxX, d_gr_vLY, d_gr_vRY, d_gr_fluxY); //Device
+  grid_alloc(gr_xCoord, gr_yCoord, gr_U, gr_V, h_maxS_reduc, //Host
+  d_gr_U, d_gr_V, d_gr_vLX, d_gr_vRX, d_gr_fluxX, 
+		  d_gr_vLY, d_gr_vRY, d_gr_fluxY, d_maxS_reduc); //Device
 
  /*-------------------  Simulation Initialization  -----------------------------*/
   sim_init(gr_V, gr_U, gr_xCoord, gr_yCoord);
@@ -98,6 +100,7 @@ int main(){
 	 //calculate time step
 	 dt = cfl_cuda(gr_V);
 	 //dt = cfl_omp(gr_V);
+
 
      if ( fabs(t - sim_tmax) <= dt ){
         dt = fabs(t - sim_tmax);
